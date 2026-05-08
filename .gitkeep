@@ -1,0 +1,3 @@
+# Dieser Ordner enthaelt zur Laufzeit die Datei estimations.json
+# mit allen gespeicherten Schaetzungen. Die Datei selbst ist via
+# .gitignore vom Versionsmanagement ausgeschlossen.
