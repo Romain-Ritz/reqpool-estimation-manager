@@ -25,6 +25,7 @@ from estimator import (
 )
 from pdf_export import erzeuge_pdf
 from storage import (
+    ist_persistent,
     lade_alle_schaetzungen,
     loesche_schaetzung,
     speichere_schaetzung,
@@ -92,6 +93,19 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+# ---------------------------------------------------------------------
+# Persistenz-Hinweis: Wenn wir nur Session-State haben (z.B. Streamlit
+# Cloud), zeigen wir einen freundlichen Hinweis an.
+# ---------------------------------------------------------------------
+if not ist_persistent():
+    st.info(
+        "ℹ️ **Demo-Modus:** Die Schaetzungs-Historie wird nur in deiner "
+        "aktuellen Browser-Session gespeichert. Nach dem Schliessen des "
+        "Tabs oder einem Neustart der App sind die Eintraege weg. "
+        "Wichtige Schaetzungen also bitte als PDF herunterladen!"
+    )
 
 
 # ---------------------------------------------------------------------
