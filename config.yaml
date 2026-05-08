@@ -1,0 +1,95 @@
+# =====================================================================
+# ReqPOOL Estimation Manager - Konfigurationsdatei
+# =====================================================================
+# Diese Datei enthaelt alle Parameter fuer die Aufwandsschaetzung.
+# Die Werte koennen hier oder direkt in der App-Oberflaeche angepasst
+# werden. Aenderungen in der App werden NICHT automatisch in diese
+# Datei zurueckgeschrieben - sie dient als Default-Wert.
+# =====================================================================
+
+# Aufwand pro Einheit in Personentagen (PT)
+# Diese Werte definieren, wie viel Aufwand pro Eingabe-Einheit
+# angesetzt wird. Beispiel: "pages: 2" -> jede Seite kostet 2 PT.
+aufwand_pro_einheit:
+  pages: 2.0              # PT pro Page (Bildschirmmaske / View)
+  use_cases: 5.0          # PT pro Use Case (Anwendungsfall)
+  business_objects: 3.0   # PT pro Business Object (Datenobjekt)
+  interfaces: 4.0         # PT pro Schnittstelle
+  batches: 3.0            # PT pro Batch-Verarbeitung
+  languages: 1.0          # PT pro unterstuetzte Sprache
+  roles: 0.5              # PT pro Benutzerrolle
+  users: 0.1              # PT pro angelegtem User
+
+# Aufschlaege in Prozent auf die Basisschaetzung
+# Werden NACH Anwendung des Komplexitaetsfaktors aufgeschlagen.
+aufschlaege_prozent:
+  projektmanagement: 15   # 15% Projektmanagement-Aufwand
+  tests: 20               # 20% Testaufwand
+  dokumentation: 10       # 10% Dokumentations-Aufwand
+
+# Komplexitaetsfaktor-Konfiguration
+# Aus der Projektskizze (Freitext) wird heuristisch ein Faktor
+# zwischen min und max berechnet. Basis ist 1.0.
+komplexitaet:
+  basis_faktor: 1.0       # Startwert
+  faktor_min: 0.8         # Minimum (sehr einfaches Projekt)
+  faktor_max: 1.6         # Maximum (sehr komplex)
+
+  # Keywords, die den Faktor erhoehen.
+  # Format: "keyword: zuschlag" (Zuschlag wird auf basis_faktor addiert)
+  keywords_erhoehen:
+    komplex: 0.10
+    kompliziert: 0.10
+    integration: 0.08
+    integrationen: 0.08
+    schnittstelle: 0.05
+    schnittstellen: 0.05
+    legacy: 0.10
+    migration: 0.10
+    migrieren: 0.08
+    echtzeit: 0.10
+    realtime: 0.10
+    hochverfuegbar: 0.12
+    skalierung: 0.08
+    skalierbar: 0.08
+    sicherheit: 0.07
+    security: 0.07
+    dsgvo: 0.05
+    gdpr: 0.05
+    audit: 0.05
+    multi-mandant: 0.10
+    mandantenfaehig: 0.10
+    international: 0.05
+    mehrsprachig: 0.05
+    ki: 0.10
+    ai: 0.10
+    machine-learning: 0.10
+    ml: 0.08
+    blockchain: 0.10
+    iot: 0.08
+    cloud-migration: 0.10
+    workflow: 0.05
+    workflows: 0.05
+
+  # Keywords, die den Faktor REDUZIEREN (einfache Projekte)
+  keywords_reduzieren:
+    einfach: 0.10
+    standard: 0.05
+    prototyp: 0.10
+    mvp: 0.08
+    poc: 0.10
+    klein: 0.05
+    pilot: 0.05
+
+# Min/Max-Range fuer die Schaetzung in Prozent
+# Beispiel: 20 -> Schaetzung +/- 20% als Range
+range_prozent: 20
+
+# Branding (fuer PDF und UI)
+branding:
+  firma: "ReqPOOL"
+  produkt: "Estimation Manager"
+  primaer_farbe: "#1a2b4a"     # Dunkles Marineblau
+  akzent_farbe: "#2563eb"      # Mittelblau
+  hintergrund_farbe: "#f8f9fb" # Sehr helles Grau
+  text_farbe: "#1f2937"        # Dunkelgrau
