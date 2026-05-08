@@ -1,0 +1,26 @@
+# =====================================================================
+# Streamlit-Theme - ReqPOOL-Branding
+# =====================================================================
+# Diese Datei wird von Streamlit automatisch geladen und definiert
+# Standard-Farben fuer die App. Ueberschreibt das Default-Streamlit-Rot.
+# =====================================================================
+
+[theme]
+# Primaer-Akzentfarbe (Buttons, Slider, Highlights)
+primaryColor = "#2563eb"
+
+# Hintergrund der App
+backgroundColor = "#ffffff"
+
+# Hintergrund von Sidebar und Widgets
+secondaryBackgroundColor = "#f8f9fb"
+
+# Standard-Textfarbe
+textColor = "#1f2937"
+
+# Schriftart
+font = "sans serif"
+
+[server]
+# Standard-Port (kann lokal ueberschrieben werden)
+headless = true
