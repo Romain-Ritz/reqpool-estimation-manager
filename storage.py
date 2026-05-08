@@ -1,25 +1,23 @@
 """
 ReqPOOL Estimation Manager - Speicherung
 =========================================
-Speichert Schaetzungen als JSON-Datei, damit eine Historie aller
-durchgefuehrten Schaetzungen erhalten bleibt.
+Speichert Schaetzungen entweder in einer JSON-Datei (lokal) oder
+im Streamlit Session-State (Cloud / Demo-Modus ohne Schreibzugriff).
 
-Datenformat: Liste von Eintraegen, jeder Eintrag enthaelt
-- id (UUID)
-- timestamp (ISO-Format)
-- titel
-- inputs (dict)
-- skizze (str)
-- ergebnis_zusammenfassung (dict mit den wichtigsten Zahlen)
+Wir versuchen zuerst, in 'data/estimations.json' zu schreiben.
+Wenn das fehlschlaegt (z.B. read-only Filesystem auf Streamlit Cloud),
+fallen wir automatisch auf einen In-Memory-Speicher zurueck, der
+nur fuer die Dauer der Browser-Session gilt.
 """
 
 import json
-import os
 import uuid
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+import streamlit as st
 
 from estimator import SchaetzErgebnis
 
@@ -27,20 +25,34 @@ from estimator import SchaetzErgebnis
 # Pfad zur Speicherdatei (im Projektverzeichnis)
 SPEICHER_PFAD = Path(__file__).parent / "data" / "estimations.json"
 
+# Session-State-Key fuer den In-Memory-Fallback
+_SESSION_KEY = "_reqpool_estimations_memory"
 
-def _stelle_sicher_dass_datei_existiert() -> None:
-    """Erzeugt das data-Verzeichnis und eine leere Datei, falls noetig."""
-    SPEICHER_PFAD.parent.mkdir(parents=True, exist_ok=True)
-    if not SPEICHER_PFAD.exists():
-        SPEICHER_PFAD.write_text("[]", encoding="utf-8")
+
+# ---------------------------------------------------------------------
+# Hilfsfunktionen
+# ---------------------------------------------------------------------
+
+def _datei_speicher_verfuegbar() -> bool:
+    """Prueft, ob wir die JSON-Datei schreiben koennen.
+
+    Versucht das Verzeichnis anzulegen und eine leere Datei zu schreiben.
+    Schlaegt das fehl (Permission, read-only FS), nutzen wir Session-State.
+    """
+    try:
+        SPEICHER_PFAD.parent.mkdir(parents=True, exist_ok=True)
+        if not SPEICHER_PFAD.exists():
+            SPEICHER_PFAD.write_text("[]", encoding="utf-8")
+        # Test-Schreibvorgang
+        with SPEICHER_PFAD.open("a", encoding="utf-8") as f:
+            pass
+        return True
+    except (OSError, PermissionError):
+        return False
 
 
 def _ergebnis_zu_dict(ergebnis: SchaetzErgebnis) -> Dict:
-    """Wandelt das Dataclass-Ergebnis rekursiv in ein Dict um.
-
-    Wir speichern nur die wichtigsten Werte, damit die JSON-Datei
-    klein bleibt und beim Wiederladen einfach handhabbar ist.
-    """
+    """Wandelt das Dataclass-Ergebnis rekursiv in ein Dict um."""
     return {
         "basis_pt": ergebnis.basis_pt,
         "komplexitaet_faktor": ergebnis.komplexitaet.faktor,
@@ -56,6 +68,39 @@ def _ergebnis_zu_dict(ergebnis: SchaetzErgebnis) -> Dict:
     }
 
 
+def _lade_alle_aus_datei() -> List[Dict]:
+    if not SPEICHER_PFAD.exists():
+        return []
+    with SPEICHER_PFAD.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _speichere_alle_in_datei(daten: List[Dict]) -> None:
+    with SPEICHER_PFAD.open("w", encoding="utf-8") as f:
+        json.dump(daten, f, ensure_ascii=False, indent=2)
+
+
+def _lade_alle_aus_session() -> List[Dict]:
+    return st.session_state.get(_SESSION_KEY, [])
+
+
+def _speichere_alle_in_session(daten: List[Dict]) -> None:
+    st.session_state[_SESSION_KEY] = daten
+
+
+# ---------------------------------------------------------------------
+# Oeffentliche API
+# ---------------------------------------------------------------------
+
+def ist_persistent() -> bool:
+    """True, wenn die Schaetzungen dauerhaft gespeichert werden.
+
+    Wird von der UI verwendet, um einen Hinweis-Banner anzuzeigen,
+    falls wir nur im Session-State arbeiten.
+    """
+    return _datei_speicher_verfuegbar()
+
+
 def speichere_schaetzung(
     titel: str,
     inputs: Dict[str, int],
@@ -63,8 +108,6 @@ def speichere_schaetzung(
     ergebnis: SchaetzErgebnis,
 ) -> str:
     """Speichert eine neue Schaetzung und liefert deren ID zurueck."""
-    _stelle_sicher_dass_datei_existiert()
-
     eintrag = {
         "id": str(uuid.uuid4()),
         "timestamp": datetime.now().isoformat(timespec="seconds"),
@@ -74,23 +117,24 @@ def speichere_schaetzung(
         "ergebnis": _ergebnis_zu_dict(ergebnis),
     }
 
-    with SPEICHER_PFAD.open("r", encoding="utf-8") as f:
-        daten: List[Dict] = json.load(f)
-
-    daten.append(eintrag)
-
-    with SPEICHER_PFAD.open("w", encoding="utf-8") as f:
-        json.dump(daten, f, ensure_ascii=False, indent=2)
+    if _datei_speicher_verfuegbar():
+        daten = _lade_alle_aus_datei()
+        daten.append(eintrag)
+        _speichere_alle_in_datei(daten)
+    else:
+        daten = _lade_alle_aus_session()
+        daten.append(eintrag)
+        _speichere_alle_in_session(daten)
 
     return eintrag["id"]
 
 
 def lade_alle_schaetzungen() -> List[Dict]:
     """Liefert alle gespeicherten Schaetzungen, neueste zuerst."""
-    _stelle_sicher_dass_datei_existiert()
-    with SPEICHER_PFAD.open("r", encoding="utf-8") as f:
-        daten: List[Dict] = json.load(f)
-    # Neueste zuerst
+    if _datei_speicher_verfuegbar():
+        daten = _lade_alle_aus_datei()
+    else:
+        daten = _lade_alle_aus_session()
     return sorted(daten, key=lambda e: e.get("timestamp", ""), reverse=True)
 
 
@@ -104,14 +148,16 @@ def lade_schaetzung(id_: str) -> Optional[Dict]:
 
 def loesche_schaetzung(id_: str) -> bool:
     """Loescht eine Schaetzung anhand ihrer ID."""
-    _stelle_sicher_dass_datei_existiert()
-    with SPEICHER_PFAD.open("r", encoding="utf-8") as f:
-        daten: List[Dict] = json.load(f)
-
-    neue_daten = [e for e in daten if e["id"] != id_]
-    if len(neue_daten) == len(daten):
-        return False
-
-    with SPEICHER_PFAD.open("w", encoding="utf-8") as f:
-        json.dump(neue_daten, f, ensure_ascii=False, indent=2)
+    if _datei_speicher_verfuegbar():
+        daten = _lade_alle_aus_datei()
+        neue = [e for e in daten if e["id"] != id_]
+        if len(neue) == len(daten):
+            return False
+        _speichere_alle_in_datei(neue)
+    else:
+        daten = _lade_alle_aus_session()
+        neue = [e for e in daten if e["id"] != id_]
+        if len(neue) == len(daten):
+            return False
+        _speichere_alle_in_session(neue)
     return True
